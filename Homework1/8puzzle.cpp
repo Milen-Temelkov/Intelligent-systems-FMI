@@ -38,13 +38,13 @@ struct Number {
 
 
 
-pair<vector<Number>, vector<vector<int>>> input() {
+pair<vector<Number>, vector<int>> input() {
     int numbersCount, nullIndex;
     cin >> numbersCount >> nullIndex;
     
     vector<Number> data(numbersCount + 1);
     int dimensionSize = sqrt(numbersCount + 1);
-    vector<vector<int>> matrix(dimensionSize, std::vector<int>(dimensionSize, 0));
+    vector<int> matrix(numbersCount + 1, 0);
 
     for (int i = 0; i <= numbersCount; i++) {
         int number;
@@ -52,7 +52,7 @@ pair<vector<Number>, vector<vector<int>>> input() {
         data[number].current.x = i / dimensionSize;
         data[number].current.y = i % dimensionSize;
 
-        matrix[i / dimensionSize][i % dimensionSize] = number;
+        matrix[i] = number;
     }
 
     nullIndex = ((nullIndex == -1) ? numbersCount : nullIndex);
@@ -114,7 +114,6 @@ bool isSolvable(vector<Number> data, bool emptyAtStart) {
 
     else {
         int blankRow = emptyAtStart ? data[0].current.x + 1 : dimension - data[0].current.x;
-        cout << inversions << ' ' << blankRow << endl;
         
         return (inversions + blankRow) % 2 == 1;
     }
@@ -124,9 +123,9 @@ bool isSolvable(vector<Number> data, bool emptyAtStart) {
 
 class Node {
     int distance = 0;
-    vector<vector<int>> matrix;
+    int dimension;
+    vector<int> matrix;
     vector<Number> data;
-    vector<Move> moves;
 
     void calculateManhattenDistance() {
         int dimensionSize = sqrt(data.size());
@@ -165,7 +164,7 @@ class Node {
         }
 
         
-        int neighbourValue = matrix[neighbourX][neighbourY];
+        int neighbourValue = matrix[neighbourX * dimension + neighbourY];
         
         int oldDistance = abs((data[neighbourValue].current.x) - (data[neighbourValue].goal.x)) + abs((data[neighbourValue].current.y) - (data[neighbourValue].goal.y));
         makeMove(neighbourValue);
@@ -176,7 +175,7 @@ class Node {
     }
 
     void makeMove(int neighbourValue) {
-        swap(matrix[data[0].current.x][data[0].current.y], matrix[data[neighbourValue].current.x][data[neighbourValue].current.y]);
+        swap(matrix[data[0].current.x * dimension + data[0].current.y], matrix[data[neighbourValue].current.x * dimension + data[neighbourValue].current.y]);
         swap(data[0].current, data[neighbourValue].current);
         
     }
@@ -184,19 +183,17 @@ class Node {
 public:
 
     Node(const Node& oth, Move move) {
-        // this->isValid = oth.isValid;
         this->distance = oth.distance;
+        this->dimension = oth.dimension;
         this->matrix = oth.matrix;
         this->data = oth.data;
-        this->moves = oth.moves;
-        this->moves.push_back(move);
         recalculateManhattenDistance(move);
     }
 
-    Node(vector<Number> data, vector<vector<int>> matrix) {
+    Node(vector<Number> data, vector<int> matrix) {
+        this->dimension = sqrt(data.size());
         this->data = data;
         this->matrix = matrix;
-        this->moves = vector<Move>(0);
         calculateManhattenDistance();
     }
 
@@ -204,20 +201,16 @@ public:
         return distance;
     }
 
-    vector<vector<int>> getMatrix() const {
+    vector<int> getMatrix() const {
         return matrix;
     }
 
     vector<Number> getData() const {
         return data;
     }
-
-    vector<Move> getMoves() const {
-        return moves;
-    }
     
-    int dimension() const {
-        return matrix.size();
+    int getDimension() const {
+        return dimension;
     }
 
     Coordinates zeroCoordinates() const {
@@ -227,15 +220,12 @@ public:
 
 
 
-pair<bool, int> search(const Node& node, int threshold, int currentCost) {
-    // cout << "threshold in search is: " << threshold << endl;
-    // goal state reached
-    // print(node.getMatrix());
-    // cout << threshold << ' ' << currentCost << endl;
+pair<bool, int> search(const Node& node, int threshold, int currentCost, vector<Move>& moves) {
+
     if(node.getDistance() == 0) {
         cout << currentCost << endl;
-        for (int i = 0; i < node.getMoves().size(); i++) {
-            switch (node.getMoves()[i]) {
+        for (int i = 0; i < moves.size(); i++) {
+            switch (moves[i]) {
                 case Move::up:
                     cout << "up" << endl;
                     break;
@@ -259,26 +249,24 @@ pair<bool, int> search(const Node& node, int threshold, int currentCost) {
 
 
     if (currentCost + node.getDistance() > threshold) {
-        // cout << "stop expanding" << endl;
         return pair(false, currentCost + node.getDistance());
     }
 
-
-
     Coordinates zeroCoordinates = node.zeroCoordinates();
-    // zeroCoordinates.print();
-    // cout << endl;
     
-    int dimension = node.dimension() - 1;
+    int dimension = node.getDimension() - 1;
     int nextMinThreshold = INT_MAX;
 
-    // cout << "dimension is: " << dimension << endl;
 
     if ((zeroCoordinates.y >= 0 && zeroCoordinates.y < dimension) && 
-        ((!node.getMoves().empty() && node.getMoves().back() != Move::right) || node.getMoves().empty())) {
-        // cout << "in left" << endl;
-        pair<bool, int> leftRes = search(Node(node, Move::left), threshold, currentCost + 1);
-    
+        ((!moves.empty() && moves.back() != Move::right) || moves.empty())) {
+
+        moves.push_back(Move::left);
+
+        pair<bool, int> leftRes = search(Node(node, Move::left), threshold, currentCost + 1, moves);
+
+        moves.pop_back();
+
         if(leftRes.first == true) {
             return leftRes;
         }
@@ -290,9 +278,13 @@ pair<bool, int> search(const Node& node, int threshold, int currentCost) {
 
 
     if ((zeroCoordinates.y > 0 && zeroCoordinates.y <= dimension) &&
-        ((!node.getMoves().empty() && node.getMoves().back() != Move::left) || node.getMoves().empty())) {
-            // cout << "in right" << endl;
-        pair<bool, int> rightRes = search(Node(node, Move::right), threshold, currentCost + 1);
+        ((!moves.empty() && moves.back() != Move::left) || moves.empty())) {
+
+        moves.push_back(Move::right);
+
+        pair<bool, int> rightRes = search(Node(node, Move::right), threshold, currentCost + 1, moves);
+
+        moves.pop_back();
 
         if(rightRes.first == true) {
             return rightRes;
@@ -305,9 +297,13 @@ pair<bool, int> search(const Node& node, int threshold, int currentCost) {
 
 
     if ((zeroCoordinates.x > 0 && zeroCoordinates.x <= dimension) &&
-        ((!node.getMoves().empty() && node.getMoves().back() != Move::up) || node.getMoves().empty())) {
-        // cout << "in down" << endl;
-        pair<bool, int> downRes = search(Node(node, Move::down), threshold, currentCost + 1);
+        ((!moves.empty() && moves.back() != Move::up) || moves.empty())) {
+
+        moves.push_back(Move::down);
+
+        pair<bool, int> downRes = search(Node(node, Move::down), threshold, currentCost + 1, moves);
+
+        moves.pop_back();
 
         if(downRes.first == true) {
             return downRes;
@@ -320,9 +316,13 @@ pair<bool, int> search(const Node& node, int threshold, int currentCost) {
 
 
     if ((zeroCoordinates.x >= 0 && zeroCoordinates.x < dimension) &&
-        ((!node.getMoves().empty() && node.getMoves().back() != Move::down) || node.getMoves().empty())) {
-        // cout << "in up" << endl;
-        pair<bool, int> upRes = search(Node(node, Move::up), threshold, currentCost + 1);
+        ((!moves.empty() && moves.back() != Move::down) || moves.empty())) {
+
+        moves.push_back(Move::up);
+
+        pair<bool, int> upRes = search(Node(node, Move::up), threshold, currentCost + 1, moves);
+
+        moves.pop_back();
 
         if(upRes.first == true) {
             return upRes;
@@ -333,6 +333,7 @@ pair<bool, int> search(const Node& node, int threshold, int currentCost) {
         }
     }
 
+    
     return pair(false, nextMinThreshold);
 
 }
@@ -340,18 +341,18 @@ pair<bool, int> search(const Node& node, int threshold, int currentCost) {
 
 void IDAStar(const Node& start) {
     int threshold = start.getDistance();
+    vector<Move> moves(0);
+
     while(true) {
-        
-        pair<bool, int> iterationResult = search(start, threshold, 0);
+        pair<bool, int> iterationResult = search(start, threshold, 0, moves);
         if(iterationResult.first == true) {
             return;
         }
-        // cout << "threshold will become: " << iterationResult.second << endl;
         threshold = iterationResult.second;
     }
 }
 
-void solve(vector<Number> data, vector<vector<int>> matrix) {
+void solve(vector<Number> data, vector<int> matrix) {
     bool zeroAtStart = (data[0].goal.x == 0 && data[0].goal.y == 0);
     
     if(!isSolvable(data, zeroAtStart)) {
@@ -364,21 +365,21 @@ void solve(vector<Number> data, vector<vector<int>> matrix) {
 
 
 int main() {
-    pair<vector<Number>, vector<vector<int>>> data = input();
+    pair<vector<Number>, vector<int>> data = input();
 
 
     // Започваме да измерваме времето
-    // auto start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
 
     solve(data.first, data.second);
     
 
     // Край на измерването на времето
-    // auto end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
 
     // // Изчисляване на времето за изпълнение в секунди
-    // std::chrono::duration<double> elapsed = end - start;
-    // std::cout << "Execution time: " << std::fixed << std::setprecision(2) << elapsed.count() << " seconds\n";
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "Execution time: " << std::fixed << std::setprecision(2) << elapsed.count() << " seconds\n";
 
     return 0;
 }
