@@ -204,8 +204,8 @@ int main() {
         items[i] = Item( {itemWeight, itemValue } );
     }
 
-    int generations = itemsCount * 2;
-    int individuals = itemsCount;
+    int generations = 50 + itemsCount;
+    int individuals = 50 + itemsCount * 3;
     solveKnapsack(maxWeight, items, generations, individuals);
 
     return 0;
