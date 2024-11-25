@@ -12,11 +12,6 @@ struct Turn {
     }
 };
 
-struct Win {
-    bool isWin;
-    char winner;
-};
-
 void makeMove(int x, int y, vector<vector<char>>& board, char moveType) {
     board[x][y] = moveType;
 }
@@ -88,17 +83,6 @@ bool hasWinner(const vector<vector<char>>& board) {
     
 }
 
-bool isTie(const vector<vector<char>>& board) {
-    for(int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            if (board[i][j] == '_') {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 void print(const vector<vector<char>>& board) {
     for(int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -122,10 +106,10 @@ vector<Turn> getPossibleTurns(const vector<vector<char>>& board) {
     return possibleTurns;
 }
 
-int minimizer(vector<vector<char>>& board, int alphaValue, int betaValue, vector<Turn> possibleTurns, int depth);
-int maximizer(vector<vector<char>>& board, int alphaValue, int betaValue, vector<Turn> possibleTurns, int depth);
+int minimizer(vector<vector<char>>& board, int alphaValue, int betaValue, int depth);
+int maximizer(vector<vector<char>>& board, int alphaValue, int betaValue, int depth);
 
-Turn makeDecision(vector<vector<char>>& board) { //make decision is a maximizer of 'o' moves
+Turn makeDecision(vector<vector<char>>& board, bool compStartsFirst) {
     vector<Turn> possibleTurns = getPossibleTurns(board);
 
     int maxVal = INT_MIN;
@@ -135,71 +119,51 @@ Turn makeDecision(vector<vector<char>>& board) { //make decision is a maximizer 
 
     Turn bestTurn;
 
-    while(!possibleTurns.empty()) {
-        Turn currTurn = possibleTurns.back();
+    int depth = compStartsFirst ? 1 : 2;
+    
+    for (Turn curr : possibleTurns) {
+        makeMove(curr.row, curr.col, board, 'o');
 
-        // cout << "current turn is: ";
-        // currTurn.print();
+        int currRes = minimizer(board, alphaValue, betaValue, depth);
 
-        possibleTurns.pop_back();
+        makeMove(curr.row, curr.col, board, '_');
 
-        makeMove(currTurn.row, currTurn.col, board, 'o'); // making the move
-
-
-        int currRes = minimizer(board, alphaValue, betaValue, possibleTurns, 2);
-
-        // cout << "current result is: " << currRes << endl;
-        // cout << "max result is: " << maxVal << endl;
-
+        //fancy max()
         if (maxVal < currRes) {
-            // cout << "swaping best turn" <<  endl;
-            
             maxVal = currRes;
-            bestTurn = currTurn;
+            bestTurn = curr;
         }
 
-        makeMove(currTurn.row, currTurn.col, board, '_'); // unmaking the move
-
-        //update alpha
         alphaValue = max(alphaValue, maxVal);
 
-        //prune
-        if (maxVal > betaValue) {
-            continue;
-        }
     }
 
     return bestTurn;
 }
 
-int maximizer(vector<vector<char>>& board, int alphaValue, int betaValue, vector<Turn> possibleTurns, int depth) {
-
+int maximizer(vector<vector<char>>& board, int alphaValue, int betaValue, int depth) {
+    
     int maxVal = INT_MIN;
+    vector<Turn> possibleTurns = getPossibleTurns(board);
 
     if (hasWinner(board)) {
         return depth - 10;
-        
     }
 
     if (possibleTurns.empty()) {
         return 0;
     }
 
-    while(!possibleTurns.empty()) {
-        Turn curr = possibleTurns.back();
-        possibleTurns.pop_back();
-
-        makeMove(curr.row, curr.col, board, 'o'); // making the move
+    for (Turn curr : possibleTurns) {
+        makeMove(curr.row, curr.col, board, 'o');
         
-        maxVal = max(maxVal, minimizer(board, alphaValue, betaValue, possibleTurns, depth + 1));
+        maxVal = max(maxVal, minimizer(board, alphaValue, betaValue, depth + 1));
 
-        makeMove(curr.row, curr.col, board, '_'); // unmaking the move
+        makeMove(curr.row, curr.col, board, '_');
         
-        //update alpha
         alphaValue = max(alphaValue, maxVal);
 
-        //prune
-        if (maxVal > betaValue) {
+        if (maxVal >= betaValue) {
             return betaValue;
         }
     }
@@ -207,9 +171,11 @@ int maximizer(vector<vector<char>>& board, int alphaValue, int betaValue, vector
     return maxVal;
 }
 
-int minimizer(vector<vector<char>>& board, int alphaValue, int betaValue, vector<Turn> possibleTurns, int depth) {
+int minimizer(vector<vector<char>>& board, int alphaValue, int betaValue, int depth) {
+    
     int minVal = INT_MAX;
-
+    vector<Turn> possibleTurns = getPossibleTurns(board);
+   
     if (hasWinner(board)) {
         return 10 - depth;
     }
@@ -218,37 +184,30 @@ int minimizer(vector<vector<char>>& board, int alphaValue, int betaValue, vector
         return 0;
     }
 
-    while(!possibleTurns.empty()) {
-        Turn curr = possibleTurns.back();
-        possibleTurns.pop_back();
+    for (Turn curr : possibleTurns) {
+        makeMove(curr.row, curr.col, board, 'x');
 
-        makeMove(curr.row, curr.col, board, 'x'); // making the move
+        minVal = min(minVal, maximizer(board, alphaValue, betaValue, depth + 1));
 
-        minVal = min(minVal, maximizer(board, alphaValue, betaValue, possibleTurns, depth + 1));
+        makeMove(curr.row, curr.col, board, '_');
 
-        makeMove(curr.row, curr.col, board, '_'); // unmaking the move
-        
-        //update beta
         betaValue = min(betaValue, minVal);
 
-        //prune
-        if (minVal < alphaValue) {
+        if (minVal <= alphaValue) {
             return alphaValue;
         }
-
-
     }
 
     return minVal;
 }
 
-void playGame() {
+void playGame(bool playerIsFirst) {
     vector<vector<char>> board(3, std::vector<char>(3, '_'));
 
     int row, col;
     for (int turns = 0; turns < 9; turns++) {
 
-        if (turns % 2 == 0) {
+        if (turns % 2 == !playerIsFirst) {
             cout << "input row and col: " << endl;
             cin >> row >> col;
 
@@ -257,30 +216,37 @@ void playGame() {
             print(board);
 
             if (hasWinner(board)) {
-                cout << "You win!" << endl;
+                cout << "You win! :)" << endl;
                 return;
             }
+
         } else {
-            Turn bestTurnForComputer = makeDecision(board);
+            Turn bestTurnForComputer = makeDecision(board, !playerIsFirst);
 
             cout << "O plays:        " << endl;
+
             makeMove(bestTurnForComputer.row, bestTurnForComputer.col, board, 'o');
             print(board);
 
             if (hasWinner(board)) {
-                cout << "Computer wins!" << endl;
+                cout << "Computer wins! :(" << endl;
                 return;
             }
         }
     }
 
-    cout << "Its a tie :(" << endl;
+    cout << "Its a tie! :|" << endl;
     return;
 }
 
 int main() {
 
-    playGame();
+    bool playerIsFirst;
+
+    cout << "Do you want to start first?" << endl;
+    cin >> playerIsFirst;
+
+    playGame(playerIsFirst);
 
     return 0;
 }
