@@ -2,7 +2,7 @@ import random
 import os
 
 FROM_FILE = True
-INPUT_FILE = "inputs/long.txt"
+INPUT_FILE = "../inputs/long.txt"
 POPULATION_SIZE = 1000
 GENERATIONS = 500
 MUTATION_RATE = 0.02
@@ -11,7 +11,7 @@ ELITISM = 20
 
 def read_input():
     if FROM_FILE:
-        full_path = os.path.join(os.path.dirname(__file__), INPUT_FILE)
+        full_path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), INPUT_FILE))
         with open(full_path, "r") as file:
             lines = file.readlines()
             capacity, num_items = map(int, lines[0].split())
