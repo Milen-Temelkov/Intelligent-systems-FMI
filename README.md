@@ -46,14 +46,14 @@ The repository contains a collection of algorithm and machine learning projects 
 - **Goal**: Simulate a game by displaying the board state after each move—allowing the user to choose who starts—until a winner is declared.
 
 
-### Bonus 2 – Naive Bayes Classifier (Congressional Voting Records)
-- **Algorithm**: Implements a Naive Bayes classifier from scratch to classify congressional voting records into Democrats or Republicans, handling missing values either as a third category or via imputation, with Laplace smoothing and logarithmic probabilities to avoid zero probabilities.  
-- **Goal**: Evaluate the classifier on an 80:20 stratified train-test split using 10-fold cross-validation, reporting training accuracy, average cross-validation accuracy (with standard deviation), and test set accuracy.
-
-
-### Homework 5 – k-Nearest Neighbors (kNN) on Iris
+### Bonus 2 – k-Nearest Neighbors (kNN) on Iris
 - **Algorithm**: Implements the k-Nearest Neighbors algorithm from scratch—optionally using a kd-tree for efficiency—and applies data normalization (if necessary) on the Iris dataset.  
 - **Goal**: Evaluate model performance by reporting the training set accuracy, the average and standard deviation from 10-fold cross-validation, and the test set accuracy for a user-specified k value.
+
+
+### Homework 5 – Naive Bayes Classifier (Congressional Voting Records)
+- **Algorithm**: Implements a Naive Bayes classifier from scratch to classify congressional voting records into Democrats or Republicans, handling missing values either as a third category or via imputation, with Laplace smoothing and logarithmic probabilities to avoid zero probabilities.  
+- **Goal**: Evaluate the classifier on an 80:20 stratified train-test split using 10-fold cross-validation, reporting training accuracy, average cross-validation accuracy (with standard deviation), and test set accuracy.
 
 
 ### Homework 6 – Decision Tree (ID3 with Pruning) on Breast Cancer
